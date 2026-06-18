@@ -1,0 +1,17 @@
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# skl machine state (never commit credentials)
+.skl/
+
+# Node tooling used only for local markdown linting
+node_modules/
+npm-debug.log*
+
+# Python tooling
+__pycache__/
+.venv/

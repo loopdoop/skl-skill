@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: skl CLI itself
+    url: https://useskl.com
+    about: This repo is the *skill* (docs for agents). For bugs in the skl CLI binary, see useskl.com.
