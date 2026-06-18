@@ -55,6 +55,7 @@ Two command families, never mixed:
   `~/.skl/` and the binary itself.
 
 Key facts that trip people up:
+
 - `skl install` takes **no skill name** — it re-lands everything in `skl.json`.
   To add one skill use `skl add <name>` (npm's single `install` is split in two).
 - Skills are **copied**, not symlinked, into each agent dir.
