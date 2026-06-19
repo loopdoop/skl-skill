@@ -35,7 +35,7 @@ Think **npm, for skills**:
 | npm | skl | meaning |
 |---|---|---|
 | `npm publish` | `skl publish <folder>` | push a skill to the registry |
-| `npm install <pkg>` | `skl add <name>` | add one new skill + record it |
+| `npm install <pkg>` | `skl install <name>` | add one new skill + record it |
 | `npm ci` | `skl install` (no name) | rebuild everything from the manifest |
 | `npm uninstall <pkg>` | `skl uninstall <name>` | remove one skill |
 | `npm ls` | `skl list` | what this project installed |
@@ -56,10 +56,11 @@ Two command families, never mixed:
 
 Key facts that trip people up:
 
-- **Bare `skl install` re-lands everything** in `skl.json` (the `npm ci` move).
-  To add one new skill use `skl add <name>`. As an npm-compat convenience,
-  `skl install <name>` **routes to `add`** (so `npm install <pkg>` muscle-memory
-  works) — but bare `install` is always the full rebuild.
+- **Use `skl install <name>` to add one skill** (the preferred form — mirrors
+  `npm install <pkg>`). `skl add <name>` is just an alias for the same thing.
+- **Bare `skl install`** (no name) re-lands everything in `skl.json` — the
+  `npm ci` move. So `install` does double duty: with a name it adds one skill,
+  without one it rebuilds the whole manifest.
 - Skills are **copied**, not symlinked, into each agent dir.
 - Versions are **manual and immutable**: you bump `metadata.version` by hand;
   re-publishing the same `(skill, version)` is a hard conflict.
@@ -82,7 +83,7 @@ Key facts that trip people up:
 
 ## Aliases (npm muscle-memory)
 
-`add`→`a` · `install`→`i`,`in` · `uninstall`→`remove`,`rm`,`un`,`r` ·
+`install`→`i`,`in` (and `add`,`a`) · `uninstall`→`remove`,`rm`,`un`,`r` ·
 `list`→`ls`,`la`,`ll` · `publish`→`pub` · `info`→`view`,`show` · `scan`→`outdated`
 · `config`→`c` · `login`→`adduser` · `upgrade`→`up`
 
@@ -136,29 +137,29 @@ existing version fails (immutable).
 ### Start a project & add skills
 
 ```bash
-skl init                                  # pick target agents (detected ones pre-checked)
-skl init --targets claude,cursor          # non-interactive
-skl add loopdoop/asc815-memo              # add + record (bootstraps skl.json if missing)
-skl add loopdoop/asc815-memo@2.3.1        # pin an exact version
-skl add loopdoop/asc815-memo --latest     # track latest (floating)
+skl init                                      # pick target agents (detected ones pre-checked)
+skl init --targets claude,cursor              # non-interactive
+skl install loopdoop/asc815-memo              # add + record (bootstraps skl.json if missing)
+skl install loopdoop/asc815-memo@2.3.1        # pin an exact version
+skl install loopdoop/asc815-memo --latest     # track latest (floating)
 ```
 
-`add` lands the skill into **every** agent in `skl.json`'s `targets` and records
-it. Bare `add` (interactive) asks whether to **pin** the resolved version or
-track **latest**; non-interactive runs **pin by default**.
+Prefer `skl install <name>` to add a skill (`skl add <name>` is just an alias).
+It lands the skill into **every** agent in `skl.json`'s `targets` and records
+it. An interactive run asks whether to **pin** the resolved version or track
+**latest**; non-interactive runs **pin by default**.
 
 ### Rebuild on another machine
 
 ```bash
 skl install            # re-land every skill from skl.json (the `npm ci` move)
 skl install --prune    # also delete skill dirs under targets you've dropped
-skl install alice/memo # npm-style single install — routes to `skl add`
 ```
 
 Pinned entries rebuild byte-identically; floating entries re-resolve to the
-current version (install warns, since that isn't reproducible). Passing a
-**name** (`skl install <name>`) is an npm-compat shortcut that routes to
-`add`; **bare** `install` is the full rebuild.
+current version (install warns, since that isn't reproducible). **Bare**
+`install` (no name) is the full rebuild; passing a **name** adds that one skill
+(see above).
 
 ### Inspect & maintain
 
@@ -225,8 +226,8 @@ Landing roots per target: `claude`→`.claude/skills/`, `cursor`→`.cursor/skil
 |---|---|---|
 | `skl init [--targets <csv>] [-y]` | Create/reconfigure `skl.json` | re-run = reconfigure targets only |
 | `skl publish <folder> [--dry-run]` | Publish a skill folder | needs login; version immutable |
-| `skl add <name>[@<ver>] [--latest]` | Add one skill + record it | bootstraps `skl.json` if absent |
-| `skl install [<name>] [--prune]` | Bare: re-land everything from `skl.json`; with name: routes to `add` | bare = the `npm ci` equivalent |
+| `skl install <name>[@<ver>] [--latest]` | Add one skill + record it (preferred) | bootstraps `skl.json` if absent; `add` is an alias |
+| `skl install [--prune]` | Re-land everything from `skl.json` (no name) | the `npm ci` equivalent |
 | `skl uninstall <name>` | Delete a skill's dirs + drop from manifest | local only, no network (aliases `remove`/`rm`) |
 | `skl info <name>` | Registry details + versions | works logged-out for public skills |
 | `skl list` | What this project installed | local only |
@@ -255,9 +256,9 @@ any command for scriptable output (`{ "ok": true, ... }` / `{ "ok": false,
 
 ## Gotchas & tips
 
-- **`skl install <name>` routes to `add`** (npm-compat) — it adds that one skill.
-  **Bare** `skl install` (no name) rebuilds everything from `skl.json`. The
-  canonical "add one skill" verb is still `skl add <name>`.
+- **Prefer `skl install <name>` to add a skill** — `skl add <name>` is just an
+  alias for it. Watch the positional: `skl install <name>` adds that one skill,
+  while **bare** `skl install` (no name) rebuilds everything from `skl.json`.
 - **Folder-name collisions are hard errors** (no overwrite prompt) — two skills
   sharing a last name segment can't coexist.
 - **`skl` never touches git.** Whether landed skill files enter the repo is the
