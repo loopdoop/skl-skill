@@ -35,9 +35,9 @@ Think **npm, for skills**:
 | npm | skl | meaning |
 |---|---|---|
 | `npm publish` | `skl publish <folder>` | push a skill to the registry |
-| `npm install <pkg>` | `skl add <name>` | add one new skill + record it |
-| `npm ci` | `skl install` | rebuild everything from the manifest |
-| `npm uninstall <pkg>` | `skl remove <name>` | remove one skill |
+| `npm install <pkg>` | `skl install <name>` | add one new skill + record it |
+| `npm ci` | `skl install` (no name) | rebuild everything from the manifest |
+| `npm uninstall <pkg>` | `skl uninstall <name>` | remove one skill |
 | `npm ls` | `skl list` | what this project installed |
 | `npm view <pkg>` | `skl info <name>` | registry view of one skill |
 | `package.json` | `skl.json` | the project manifest |
@@ -46,18 +46,21 @@ Think **npm, for skills**:
 
 Two command families, never mixed:
 
-- **Project-facing** (`init`, `add`, `install`, `remove`, `list`, `scan`) —
+- **Project-facing** (`init`, `add`, `install`, `uninstall`, `list`, `scan`) —
   anchored to the **current directory** (no walk-up), read/write `./skl.json`,
   and land skills into the project's agent dirs.
-- **Registry-facing** (`publish`, `info`, `fork`) — talk to a server by
-  **name**, independent of any project.
+- **Registry-facing** (`publish`, `info`) — talk to a server by **name**,
+  independent of any project.
 - **Machine-facing** (`login`, `config`, `upgrade`) — manage credentials in
   `~/.skl/` and the binary itself.
 
 Key facts that trip people up:
 
-- `skl install` takes **no skill name** — it re-lands everything in `skl.json`.
-  To add one skill use `skl add <name>` (npm's single `install` is split in two).
+- **Use `skl install <name>` to add one skill** (the preferred form — mirrors
+  `npm install <pkg>`). `skl add <name>` is just an alias for the same thing.
+- **Bare `skl install`** (no name) re-lands everything in `skl.json` — the
+  `npm ci` move. So `install` does double duty: with a name it adds one skill,
+  without one it rebuilds the whole manifest.
 - Skills are **copied**, not symlinked, into each agent dir.
 - Versions are **manual and immutable**: you bump `metadata.version` by hand;
   re-publishing the same `(skill, version)` is a hard conflict.
@@ -80,8 +83,12 @@ Key facts that trip people up:
 
 ## Aliases (npm muscle-memory)
 
-`add`→`a` · `install`→`i`,`in` · `remove`→`rm`,`un`,`uninstall` · `list`→`ls`
-· `publish`→`pub` · `info`→`view`,`show` · `upgrade`→`up`
+`install`→`i`,`in` (and `add`,`a`) · `uninstall`→`remove`,`rm`,`un`,`r` ·
+`list`→`ls`,`la`,`ll` · `publish`→`pub` · `info`→`view`,`show` · `scan`→`outdated`
+· `config`→`c` · `login`→`adduser` · `upgrade`→`up`
+
+The removal verb is **`uninstall`** (npm's canonical name); `remove`/`rm`/`un`/`r`
+are its aliases.
 
 ## Global flags (work on any command)
 
@@ -130,16 +137,17 @@ existing version fails (immutable).
 ### Start a project & add skills
 
 ```bash
-skl init                                  # pick target agents (detected ones pre-checked)
-skl init --targets claude,cursor          # non-interactive
-skl add loopdoop/asc815-memo              # add + record (bootstraps skl.json if missing)
-skl add loopdoop/asc815-memo@2.3.1        # pin an exact version
-skl add loopdoop/asc815-memo --latest     # track latest (floating)
+skl init                                      # pick target agents (detected ones pre-checked)
+skl init --targets claude,cursor              # non-interactive
+skl install loopdoop/asc815-memo              # add + record (bootstraps skl.json if missing)
+skl install loopdoop/asc815-memo@2.3.1        # pin an exact version
+skl install loopdoop/asc815-memo --latest     # track latest (floating)
 ```
 
-`add` lands the skill into **every** agent in `skl.json`'s `targets` and records
-it. Bare `add` (interactive) asks whether to **pin** the resolved version or
-track **latest**; non-interactive runs **pin by default**.
+Prefer `skl install <name>` to add a skill (`skl add <name>` is just an alias).
+It lands the skill into **every** agent in `skl.json`'s `targets` and records
+it. An interactive run asks whether to **pin** the resolved version or track
+**latest**; non-interactive runs **pin by default**.
 
 ### Rebuild on another machine
 
@@ -149,7 +157,9 @@ skl install --prune    # also delete skill dirs under targets you've dropped
 ```
 
 Pinned entries rebuild byte-identically; floating entries re-resolve to the
-current version (install warns, since that isn't reproducible).
+current version (install warns, since that isn't reproducible). **Bare**
+`install` (no name) is the full rebuild; passing a **name** adds that one skill
+(see above).
 
 ### Inspect & maintain
 
@@ -158,7 +168,7 @@ skl list                 # what THIS project installed (reads skl.json)
 skl info loopdoop/asc815-memo   # registry view: description, current + all versions
 skl scan                 # read-only health check (drift, updates, orphans)
 skl scan --offline       # fast local-only scan
-skl remove loopdoop/asc815-memo
+skl uninstall loopdoop/asc815-memo   # (skl remove / rm also work)
 ```
 
 `skl scan` mutates nothing — it reports local edits (digest drift), available
@@ -216,13 +226,12 @@ Landing roots per target: `claude`→`.claude/skills/`, `cursor`→`.cursor/skil
 |---|---|---|
 | `skl init [--targets <csv>] [-y]` | Create/reconfigure `skl.json` | re-run = reconfigure targets only |
 | `skl publish <folder> [--dry-run]` | Publish a skill folder | needs login; version immutable |
-| `skl add <name>[@<ver>] [--latest]` | Add one skill + record it | bootstraps `skl.json` if absent |
-| `skl install [--prune]` | Re-land everything from `skl.json` | the `npm ci` equivalent; no name arg |
-| `skl remove <name>` | Delete a skill's dirs + drop from manifest | local only, no network |
+| `skl install <name>[@<ver>] [--latest]` | Add one skill + record it (preferred) | bootstraps `skl.json` if absent; `add` is an alias |
+| `skl install [--prune]` | Re-land everything from `skl.json` (no name) | the `npm ci` equivalent |
+| `skl uninstall <name>` | Delete a skill's dirs + drop from manifest | local only, no network (aliases `remove`/`rm`) |
 | `skl info <name>` | Registry details + versions | works logged-out for public skills |
 | `skl list` | What this project installed | local only |
-| `skl scan [--offline]` | Read-only health check | reports drift, never mutates |
-| `skl fork <name>` | Fork a skill into your namespace | server-side, needs login |
+| `skl scan [--offline]` | Read-only health check | reports drift, never mutates (alias `outdated`) |
 | `skl login [username]` | Authenticate (mints device-bound key) | the normal auth path |
 | `skl config [use\|add\|set\|rm\|list]` | Manage named servers | stores pasted tokens only |
 | `skl upgrade [--check]` | Update the `skl` binary | detects install method |
@@ -247,8 +256,9 @@ any command for scriptable output (`{ "ok": true, ... }` / `{ "ok": false,
 
 ## Gotchas & tips
 
-- **`skl i <name>` does nothing useful** — `install` takes no positional. Use
-  `skl add <name>` to add one skill; `skl install` rebuilds everything.
+- **Prefer `skl install <name>` to add a skill** — `skl add <name>` is just an
+  alias for it. Watch the positional: `skl install <name>` adds that one skill,
+  while **bare** `skl install` (no name) rebuilds everything from `skl.json`.
 - **Folder-name collisions are hard errors** (no overwrite prompt) — two skills
   sharing a last name segment can't coexist.
 - **`skl` never touches git.** Whether landed skill files enter the repo is the
