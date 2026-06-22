@@ -51,8 +51,8 @@ Two command families, never mixed:
   and land skills into the project's agent dirs.
 - **Registry-facing** (`publish`, `info`) — talk to a server by **name**,
   independent of any project.
-- **Machine-facing** (`login`, `config`, `upgrade`) — manage credentials in
-  `~/.skl/` and the binary itself.
+- **Machine-facing** (`login`, `logout`, `config`, `upgrade`) — manage
+  credentials in `~/.skl/` and the binary itself.
 
 Key facts that trip people up:
 
@@ -85,7 +85,8 @@ Key facts that trip people up:
 
 `install`→`i`,`in` (and `add`,`a`) · `uninstall`→`remove`,`rm`,`un`,`r` ·
 `list`→`ls`,`la`,`ll` · `publish`→`pub` · `info`→`view`,`show` · `scan`→`outdated`
-· `config`→`c` · `login`→`adduser` · `upgrade`→`up`
+· `config`→`c` · `login`→`adduser`,`add-user` · `upgrade`→`up` (`logout` has no
+aliases)
 
 The removal verb is **`uninstall`** (npm's canonical name); `remove`/`rm`/`un`/`r`
 are its aliases.
@@ -112,11 +113,19 @@ semantic subdivisions exist: `3` auth/config, `4` not-found, `5` conflict.)
 ```bash
 skl login <username>          # prompts for password, mints a device-bound key
 skl login alice --registry https://skl.example.dev
+skl login --code              # redeem a website pairing code (GitHub/Google sign-ins)
+skl logout                    # forget the stored login (local only)
 ```
 
 `login` signs in, mints a **device-bound** API key for *this machine*, and
 stores it. Copying `~/.skl/servers.json` to another box won't work — the server
 rejects it with `DEVICE_MISMATCH`; run `skl login` again there.
+
+Passwordless social accounts (GitHub/Google) have no password to sign in with —
+use `--code` to redeem a one-time **pairing code** generated on the website
+(Settings → Devices → "Link a new device"); the username comes back from the
+redeem. `skl logout` is the local inverse: it forgets the stored login (never
+touches the network — revoke a token from the web UI instead).
 
 Reading/installing a **public** skill needs no login (anonymous works). A
 **private** skill always needs a token.
@@ -137,29 +146,42 @@ existing version fails (immutable).
 ### Start a project & add skills
 
 ```bash
-skl init                                      # pick target agents (detected ones pre-checked)
-skl init --targets claude,cursor              # non-interactive
-skl install loopdoop/asc815-memo              # add + record (bootstraps skl.json if missing)
-skl install loopdoop/asc815-memo@2.3.1        # pin an exact version
-skl install loopdoop/asc815-memo --latest     # track latest (floating)
+skl init                                          # pick target agents (detected ones pre-checked)
+skl init --targets claude,cursor                  # non-interactive
+skl install loopdoop/asc815-memo                  # add + record, floats to latest (bootstraps skl.json if missing)
+skl install loopdoop/asc815-memo@2.3.1            # pin an exact version
+skl install loopdoop/asc815-memo --lock-version   # pin the resolved current version
+skl install https://github.com/owner/repo         # install straight from a GitHub repo
 ```
 
 Prefer `skl install <name>` to add a skill (`skl add <name>` is just an alias).
 It lands the skill into **every** agent in `skl.json`'s `targets` and records
-it. An interactive run asks whether to **pin** the resolved version or track
-**latest**; non-interactive runs **pin by default**.
+it. By default the entry **floats to latest** — there is **no prompt** about
+versioning (same in CI / non-TTY). Pin instead with `--lock-version`/`-l` (pins
+the resolved current version) or an explicit `@version`; `--latest` is the
+explicit form of the default.
+
+The argument can also be a **GitHub URL**
+(`https://github.com/<owner>/<repo>[/tree/<ref>/<path>]`). On a TTY `skl` asks
+whether to **save it to your registry as a private skill** (`--private`, needs a
+logged-in account) or **install it locally only** (`--local`, no account — the
+URL itself is recorded in `skl.json` and re-fetched on every rebuild).
+Non-TTY / `--json` defaults to local.
 
 ### Rebuild on another machine
 
 ```bash
 skl install            # re-land every skill from skl.json (the `npm ci` move)
 skl install --prune    # also delete skill dirs under targets you've dropped
+skl install --force    # overwrite locally-modified copies instead of skipping them
 ```
 
 Pinned entries rebuild byte-identically; floating entries re-resolve to the
-current version (install warns, since that isn't reproducible). **Bare**
-`install` (no name) is the full rebuild; passing a **name** adds that one skill
-(see above).
+current version (install warns, since that isn't reproducible). Copies that are
+already up to date are a no-op, and copies you've **hand-edited are skipped with
+a warning** (not clobbered) unless you pass `--force`/`-f`. **Bare** `install`
+(no name) is the full rebuild; passing a **name** adds that one skill (see
+above).
 
 ### Inspect & maintain
 
@@ -211,8 +233,10 @@ project root; portable and **credential-free** (no server/token in it).
   (codex and grok share `.agents/skills/`.) Project-wide, **not** a per-`add`
   flag; change it by re-running `skl init`, then `skl install`.
 - `skills` — a **string array** of `"username/skill[@version]"`. With `@version`
-  the entry is **pinned**; bare it **floats** to latest. There is **no
-  `@latest`** suffix — float by omitting `@version`.
+  the entry is **pinned**; bare it **floats** to latest (the default). There is
+  **no `@latest`** suffix — float by omitting `@version`. An entry may also be a
+  **GitHub URL** (recorded by `skl install <url> --local`); those float and are
+  re-fetched from GitHub on every rebuild.
 
 Landing roots per target: `claude`→`.claude/skills/`, `cursor`→`.cursor/skills/`,
 `copilot`→`.github/skills/`, `gemini`→`.gemini/skills/`, codex & grok →
@@ -226,13 +250,14 @@ Landing roots per target: `claude`→`.claude/skills/`, `cursor`→`.cursor/skil
 |---|---|---|
 | `skl init [--targets <csv>] [-y]` | Create/reconfigure `skl.json` | re-run = reconfigure targets only |
 | `skl publish <folder> [--dry-run]` | Publish a skill folder | needs login; version immutable |
-| `skl install <name>[@<ver>] [--latest]` | Add one skill + record it (preferred) | bootstraps `skl.json` if absent; `add` is an alias |
+| `skl install <name>[@<ver>] [--lock-version]` | Add one skill + record it (preferred) | floats to latest by default; bootstraps `skl.json` if absent; arg may be a GitHub URL; `add` is an alias |
 | `skl install [--prune]` | Re-land everything from `skl.json` (no name) | the `npm ci` equivalent |
 | `skl uninstall <name>` | Delete a skill's dirs + drop from manifest | local only, no network (aliases `remove`/`rm`) |
 | `skl info <name>` | Registry details + versions | works logged-out for public skills |
 | `skl list` | What this project installed | local only |
 | `skl scan [--offline]` | Read-only health check | reports drift, never mutates (alias `outdated`) |
-| `skl login [username]` | Authenticate (mints device-bound key) | the normal auth path |
+| `skl login [username]` | Authenticate (mints device-bound key) | the normal auth path; `--code` for GitHub/Google |
+| `skl logout [username]` | Forget the stored login | local only, no network |
 | `skl config [use\|add\|set\|rm\|list]` | Manage named servers | stores pasted tokens only |
 | `skl upgrade [--check]` | Update the `skl` binary | detects install method |
 
@@ -250,6 +275,7 @@ any command for scriptable output (`{ "ok": true, ... }` / `{ "ok": false,
 | `VERSION_EXISTS` (exit 5) | re-publishing an existing `(skill, version)` | bump `metadata.version` in `SKILL.md`, publish again |
 | `MISSING_VERSION` | `SKILL.md` has no `metadata.version` | add `metadata.version: "1"` (quoted) |
 | `DIR_COLLISION` | another skill already owns that landing folder | `skl remove` the conflicting skill first |
+| `LOCAL_MODIFIED` (exit 1) | a landed copy was hand-edited after install (`install`/`uninstall`/`add` won't clobber it) | publish your edits first, or re-run with `--force`/`-f` to discard them |
 | auth failed / 401 / 403 (exit 3) | no/invalid token, or wrong namespace | `skl login <username>`; publish only under your own username |
 | `DEVICE_MISMATCH` | `servers.json` copied from another machine | run `skl login` again on **this** machine |
 | not found / 404 (exit 4) | skill missing, private, or deleted | check the name; private skills need an authorized login |
