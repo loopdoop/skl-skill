@@ -8,7 +8,7 @@ description: The command-line tool itself — command surface, global convention
 > This is the detailed reference for the `skl` command line — what it looks like,
 > how it's invoked, what each command's `--help` prints, what success and failure
 > print, exit codes, and where config is read. Read
-> [`../../skl/SKILL.md`](../../skl/SKILL.md) first for the mental model.
+> [`../SKILL.md`](../SKILL.md) first for the mental model.
 >
 > **All user-facing CLI text (usage / help / output / errors) is English.**
 

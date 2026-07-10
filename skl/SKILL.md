@@ -24,7 +24,7 @@ description: |-
   managers (npm/pip/etc.).
 license: MIT
 metadata:
-  version: "3"
+  version: "4"
 ---
 
 # skl — the Agent Skills manager
@@ -321,7 +321,9 @@ Landing roots per target (project-level): `claude`→`.claude/skills/`,
 
 Run `skl <command> --help` for the full per-command help, and add `--json` to
 any command for scriptable output (`{ "ok": true, ... }` / `{ "ok": false,
-"error": {...} }`).
+"error": {...} }`). For the detailed reference — every command's synopsis,
+`--help` text, exact output, exit codes, and config resolution — read
+[`references/cli.md`](references/cli.md).
 
 ## When a command fails — what to do
 

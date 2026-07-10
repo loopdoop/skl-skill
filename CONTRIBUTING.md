@@ -10,9 +10,9 @@ into a wrong action by every agent that loads the skill.
 A single Agent Skill:
 
 ```
-skl/SKILL.md            # the skill itself (frontmatter + instructions)
-docs/reference/cli.md   # detailed CLI reference linked from SKILL.md
-README.md               # human-facing overview
+skl/SKILL.md             # the skill itself (frontmatter + instructions)
+skl/references/cli.md    # detailed CLI reference, shipped with the skill
+README.md                # human-facing overview
 ```
 
 It documents the `skl` CLI's behavior — it does **not** contain the CLI's source.
@@ -20,7 +20,7 @@ It documents the `skl` CLI's behavior — it does **not** contain the CLI's sour
 ## Ground rules
 
 - **Match the CLI's real behavior.** Every command, flag, alias, exit code, and
-  error code in `SKILL.md` / `docs/reference/cli.md` must reflect what `skl`
+  error code in `SKILL.md` / `skl/references/cli.md` must reflect what `skl`
   actually does. If you change one, update the other so they stay in sync.
 - **Keep the frontmatter valid.** `skl/SKILL.md` must keep `name`,
   `description`, and `metadata.version` (quoted). CI enforces this.

@@ -57,7 +57,7 @@ the skill is plain Markdown any agent can load.
 | Path | What it is |
 |---|---|
 | [`skl/SKILL.md`](skl/SKILL.md) | The skill itself — frontmatter + instructions agents load |
-| [`docs/reference/cli.md`](docs/reference/cli.md) | The detailed CLI reference the skill links to |
+| [`skl/references/cli.md`](skl/references/cli.md) | The detailed CLI reference, shipped inside the skill |
 | [`scripts/validate_skill.py`](scripts/validate_skill.py) | CI check that the skill's frontmatter stays valid |
 | [`CHANGELOG.md`](CHANGELOG.md) | What changed in each published version |
 

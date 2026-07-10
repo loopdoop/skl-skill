@@ -7,6 +7,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [4] — 2026-07-10
+
+### Changed
+
+- Moved the detailed CLI reference into the skill folder
+  (`docs/reference/cli.md` → `skl/references/cli.md`) so it ships with the
+  published skill, and linked it from `SKILL.md`'s command reference. Installed
+  agents can now read the full per-command reference offline.
+
 ## [3] — 2026-07-10
 
 > Numbering note: a version `2` of `skl/skl` was already published to the

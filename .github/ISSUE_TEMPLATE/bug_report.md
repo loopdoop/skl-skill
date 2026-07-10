@@ -6,7 +6,7 @@ labels: bug
 ---
 
 **What the skill says**
-Quote the line(s) in `skl/SKILL.md` or `docs/reference/cli.md`.
+Quote the line(s) in `skl/SKILL.md` or `skl/references/cli.md`.
 
 **What skl actually does**
 The real CLI behavior (command, flag, exit code, error message).
