@@ -7,7 +7,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [2] — 2026-07-10
+## [3] — 2026-07-10
+
+> Numbering note: a version `2` of `skl/skl` was already published to the
+> registry on 2026-06-19, so this release skips straight to `3` (versions are
+> immutable).
 
 ### Changed
 

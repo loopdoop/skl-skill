@@ -24,7 +24,7 @@ description: |-
   managers (npm/pip/etc.).
 license: MIT
 metadata:
-  version: "2"
+  version: "3"
 ---
 
 # skl — the Agent Skills manager
