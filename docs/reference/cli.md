@@ -1,6 +1,6 @@
 ---
 title: skl CLI
-description: The command-line tool itself — command surface, global conventions, multi-server config resolution, the human/JSON output contract, exit codes, and per-command synopsis + help + examples. MVP = 6 core commands + list + config.
+description: The command-line tool itself — command surface, global conventions, multi-server config resolution, the human/JSON output contract, exit codes, and per-command synopsis + help + examples.
 ---
 
 # CLI
@@ -23,7 +23,7 @@ description: The command-line tool itself — command surface, global convention
   - [2.4 Exit codes](#24-exit-codes)
   - [2.5 TTY / non-interactive behavior](#25-tty--non-interactive-behavior)
   - [2.6 Error message style](#26-error-message-style)
-- [3. MVP commands](#3-mvp-commands)
+- [3. Commands](#3-commands)
   - [3.1 `skl init`](#31-skl-init)
   - [3.2 `skl publish <folder>`](#32-skl-publish-folder)
   - [3.2a `skl save <folder>`](#32a-skl-save-folder)
@@ -52,24 +52,20 @@ description: The command-line tool itself — command surface, global convention
 
 ## 1. Command surface
 
-| Command | Aliases | Family | Network | Needs token | Needs `skl.json` | Status |
-|---|---|---|---|---|---|---|
-| `skl init` | — | project | no | no | creates it (re-run = reconfigure targets) | **MVP** |
-| `skl publish <folder>` | `pub` | registry | yes | yes (write + namespace gate) | no | **MVP** |
-| `skl save <folder>` | — | registry | yes | yes (write + namespace gate) | no | **MVP** |
-| `skl install [<name\|github-url>]` | `i`, `in`, `a`, `add` | project | optional (GitHub `--local` needs none) | yes | bare: yes (read all); arg: bootstraps one if absent + records | **MVP** |
-| `skl uninstall <name>` | `remove`, `rm`, `un`, `r` | project | no | no | yes (gate) | **MVP** |
-| `skl info <name>` | `view`, `show` | registry | yes (read) | optional (public-browse; sent if present) | no | **MVP** |
-| `skl list` | `ls`, `la`, `ll` | project | no | no | yes (gate) | **MVP** |
-| `skl scan` | `outdated` | project | yes (read; skipped offline) | reads | yes (read all) | post-MVP |
-| `skl config [use\|add\|set\|rm\|ls]` | `c` | machine | no | no (stores pasted token, never mints) | no | **MVP** |
-| `skl login [username]` | `adduser`, `add-user` | machine | yes (verify) | password, `--code` (website pairing code, for GitHub/Google), or `--token` to paste → device-bound key | no | post-MVP |
-| `skl logout [username]` | — | machine | no | no (forgets the stored login) | no | post-MVP |
-| `skl upgrade` | `up` | machine | yes (GitHub Releases) | no | no | post-MVP |
-| `skl new <skill-name>` | — | authoring | no | no | no | candidate |
-| `skl whoami` | — | service | yes | yes | no | later |
-| `skl update [name]` | — | project | yes | yes | yes | later |
-| `skl status` | — | project | no | no | yes | later |
+| Command | Aliases | Family | Network | Needs token | Needs `skl.json` |
+|---|---|---|---|---|---|
+| `skl init` | — | project | no | no | creates it (re-run = reconfigure targets) |
+| `skl publish <folder>` | `pub` | registry | yes | yes (write + namespace gate) | no |
+| `skl save <folder>` | — | registry | yes | yes (write + namespace gate) | no |
+| `skl install [<name\|github-url>]` | `i`, `in`, `a`, `add` | project | optional (GitHub `--local` needs none) | yes | bare: yes (read all); arg: bootstraps one if absent + records |
+| `skl uninstall <name>` | `remove`, `rm`, `un`, `r` | project | no | no | yes (gate) |
+| `skl info <name>` | `view`, `show` | registry | yes (read) | optional (public-browse; sent if present) | no |
+| `skl list` | `ls`, `la`, `ll` | project | no | no | yes (gate) |
+| `skl scan` | `outdated` | project | yes (read; skipped offline) | reads | yes (read all) |
+| `skl config [use\|add\|set\|rm\|ls]` | `c` | machine | no | no (stores pasted token, never mints) | no |
+| `skl login [username]` | `adduser`, `add-user` | machine | yes (verify) | password, `--code` (website pairing code, for GitHub/Google), or `--token` to paste → device-bound key | no |
+| `skl logout [username]` | — | machine | no | no (forgets the stored login) | no |
+| `skl upgrade` | `up` | machine | yes (GitHub Releases) | no | no |
 
 Aliases mirror npm's own shortcuts (`remove`/`rm`/`un`/`r`, `la`/`ll`, `c`, `adduser`, `outdated`) so
 npm muscle-memory lands; each maps to exactly **one** canonical command. The removal verb is
@@ -81,7 +77,7 @@ deliberate npm divergences: there is no `update`→`upgrade` alias (skl's `upgra
 **CLI binary**, ADR-0051, not skills), and `scan`/`outdated` reports a **broader** health check than
 npm's version-only `outdated`. See the **npm cheat sheet**.
 
-> `publish --dry-run` is a **flag** on `publish`, not a command. `skl login` (machine-facing, §3.9) shipped post-MVP — interactively it now **mints a device-bound key from your password** (ADR-0043), or stores a pasted token with `--token`/`--token-stdin`. `search` / `doctor` / MCP tools remain on the roadmap, out of scope here.
+> `publish --dry-run` is a **flag** on `publish`, not a command. `skl login` (machine-facing, §3.9) interactively **mints a device-bound key from your password** (ADR-0043), or stores a pasted token with `--token`/`--token-stdin`. `search` / `doctor` / MCP tools remain on the roadmap, out of scope here.
 
 ```mermaid
 flowchart TB
@@ -104,7 +100,7 @@ flowchart TB
     end
     subgraph mach["machine-facing · reads/writes ~/.skl/"]
         CFG["config · use/add/list"]
-        LOGIN["login ✨post-MVP"]
+        LOGIN["login"]
     end
 
     classDef done fill:#eef7ee,stroke:#5a9;
@@ -185,7 +181,7 @@ flowchart TB
 - **Named switching** (`--server`/`SKL_SERVER`/`current`) is the daily path; **raw overrides** (`--registry`/`SKL_REGISTRY`/`SKL_TOKEN`) are the escape hatch for a one-off unregistered host (e.g. CI against a just-started service).
 - `--server foo` with no `foo` in `servers.json` → error listing known server names.
 - Only **network commands** require server/registry to resolve. A token is required for **publish** and to read **private** skills; `add`/`install` of a **public** skill work anonymously (ADR-0052 — a private entry 403s, so `add` prompts `skl login` and `install` skips it, exiting 0). `init` / `new` / `uninstall` / `list` / `status` read no credentials.
-- **Security:** both files hold a plaintext token — `chmod 600` (documented, not enforced in the MVP).
+- **Security:** both files hold a plaintext token — `chmod 600` (documented, not enforced).
 - **`skl.json` still records no server** — the project manifest stays portable and credential-free. A server is the *environment*, the project is the *manifest*. See skl-json §8.
 
 ### 2.3 Output contract
@@ -247,7 +243,7 @@ Example:
   Run `skl init` here first, or cd to your project root.
 ```
 
-## 3. MVP commands
+## 3. Commands
 
 Each gives: synopsis · arguments · flags · behavior · full `--help` · sample output · error cases.
 
@@ -791,7 +787,7 @@ Active server: lan
 - **Pairing code (`--code` to prompt, `--code-stdin` for CI; ADR-0067):** redeems a one-time code generated on the website (**Settings → Devices → "Link a new device"**) for a device-bound key. This is the path for **passwordless social accounts** (GitHub/Google), which have no password to sign in with — the website session mints the code, the CLI redeems it at `POST /cli/pair/redeem`, and the username comes back from the redeem (no `<username>` argument needed). Codes are single-use and expire after 10 minutes.
 - **Token (`--token` to paste interactively, `--token-stdin` for CI):** stores a token you already have; like `config`, that path stores-only and binds nothing.
 
-A bare interactive `skl login` (no `<username>`, no mode flag) offers the **password vs. pairing-code** picker so a social user isn't dead-ended at a password prompt. Whichever mode, `login` then calls `GET /me` to **confirm the credential's identity** and stores `{ token[, registry] }` in `~/.skl/servers.json` under the active server (registry omitted when it is the hosted default `https://useskl.com`), so `skl publish` works immediately. **Device binding (ADR-0043):** the minted key is bound to this machine via `md5(hostname)` (the CLI passes it in the redeem body for the pairing path); every later CLI request sends `x-skl-sn` and the server **403 `DEVICE_MISMATCH`** rejects a `servers.json` copied to another machine — the CLI then tells you to run `skl login` here again. Secrets are entered via a hidden prompt or `*-stdin`, **never a flag**; `<username>` is optional (prompted in password mode if omitted, never needed for pairing). No registry prompt — it defaults to `https://useskl.com`. Shipped post-MVP (future §7.4).
+A bare interactive `skl login` (no `<username>`, no mode flag) offers the **password vs. pairing-code** picker so a social user isn't dead-ended at a password prompt. Whichever mode, `login` then calls `GET /me` to **confirm the credential's identity** and stores `{ token[, registry] }` in `~/.skl/servers.json` under the active server (registry omitted when it is the hosted default `https://useskl.com`), so `skl publish` works immediately. **Device binding (ADR-0043):** the minted key is bound to this machine via `md5(hostname)` (the CLI passes it in the redeem body for the pairing path); every later CLI request sends `x-skl-sn` and the server **403 `DEVICE_MISMATCH`** rejects a `servers.json` copied to another machine — the CLI then tells you to run `skl login` here again. Secrets are entered via a hidden prompt or `*-stdin`, **never a flag**; `<username>` is optional (prompted in password mode if omitted, never needed for pairing). No registry prompt — it defaults to `https://useskl.com`.
 
 ```text
 skl login — Log in with your password, a website pairing code (--code), or a pasted token; stores it active  v0.0.0
@@ -1023,11 +1019,11 @@ stderr suppress the notice (the background refresh may still run). Up to date �
 
 ## 4. Candidate / later commands (help sketches)
 
-These are not MVP; listed so the surface is coherent. Details in future and open-questions.
+These are not shipped; listed so the surface is coherent. Details in future and open-questions.
 
 - **`skl new <skill-name>` (alias `create`)** — scaffold a skill folder with valid pre-filled frontmatter (`name`/`description`/`metadata.version`), killing "missing version / illegal name" publish errors at the source. Authoring-facing: path-explicit, doesn't touch `skl.json`. Accepts a **bare** skill-name (namespace added from the token at publish).
 - **`skl whoami`** — `GET /me`: prints `username` · effective registry · token source. Fastest namespace-403 diagnosis.
-- **`skl update [name]`** — re-resolves an entry to the current publish, re-lands it, and rewrites the `skl.json` record (the npm-`update` semantics: bump a *skill*, not the CLI). Still later/post-MVP. The companion read-only compare, **`outdated`, shipped as an alias of [`skl scan`](#311-skl-scan-alias-outdated)** (ADR-0059) — which already reports "recorded ≠ current" plus digest drift and availability.
+- **`skl update [name]`** — re-resolves an entry to the current publish, re-lands it, and rewrites the `skl.json` record (the npm-`update` semantics: bump a *skill*, not the CLI). Still on the roadmap. The companion read-only compare, **`outdated`, shipped as an alias of [`skl scan`](#311-skl-scan-alias-outdated)** (ADR-0059) — which already reports "recorded ≠ current" plus digest drift and availability.
 - **`skl status`** — reports drift between `skl.json` and disk (missing landings, untracked landings, version mismatches). The local, read-only precursor to a future `doctor`. **Shipped as [`skl scan`](#311-skl-scan-alias-outdated)** — which also adds digest-drift detection and the registry update/unavailable checks.
 
 ## 5. Version advancement (recorded vs. current)
@@ -1098,7 +1094,7 @@ Notes on the real output: the header carries the running binary's version (`v0.0
 
 - **Output language English** — all CLI text English; these docs are English too.
 - **No `--token` flag** — token only from `SKL_TOKEN` / `~/.skl/*`, to avoid leaking into shell history / process list. `--registry` may be a flag (non-sensitive).
-- **Exit-code semantics** — MVP `0/1/2` first; CI-friendly `3` auth / `4` not-found / `5` conflict as optional increments.
+- **Exit-code semantics** — `0/1/2` core, plus the CI-friendly semantic codes `3` auth / `4` not-found / `5` conflict for scripting.
 - **`targets` is project-wide** — `skl.json`'s top-level `targets` array (seven canonical harness ids per ADR-0013 + ADR-0078; legacy `codex`/`grok` accepted and canonicalized to `agents`; set by `init`'s detection-first picker and reconfigured by re-running `init`), not a per-`add` flag; `add`/`install` download once and land into every harness in it, with shared roots written once (`agents` plus legacy `codex`/`grok` collapse to `.agents/skills/`). Stale roots are reconciled by `install` (warn) / `install --prune` (delete); `remove` sweeps all known roots.
 - **`--cwd`** — "change current dir, still no walk-up." Preserves strict-cwd discipline.
 - **Multi-server config** — `~/.skl/servers.json` + `current`; `--server`/`SKL_SERVER` one-shot, `skl config use` persistent; `config.json` single-server fallback. `config` never mints/revokes (stores pasted tokens); `skl login` mints a device-bound key from your password (ADR-0043), and the web revokes (device list).
